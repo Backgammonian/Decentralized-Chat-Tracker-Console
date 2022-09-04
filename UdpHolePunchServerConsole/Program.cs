@@ -18,6 +18,8 @@ namespace UdpHolePunchServerConsole
 
         static async Task Main(string[] args)
         {
+            AppDomain.CurrentDomain.ProcessExit += OnExit;
+
             _clients = new Clients();
             _clients.ClientAdded += ClientAddedInCollection;
             _clients.ClientRemoved += ClientRemovedFromCollection;
@@ -30,8 +32,91 @@ namespace UdpHolePunchServerConsole
             _keepAliveTimer = new Timer();
             _keepAliveTimer.Interval = 5000;
             _keepAliveTimer.Elapsed += OnKeepAliveTimerTick;
+            _keepAliveTimer.Start();
 
-            await _server.StartListening(AskPort());
+            var port = 0;
+            if (args.Length == 0)
+            {
+                port = AskPort();
+                Console.WriteLine($"Server will listen on port {port}");
+            }
+            else
+            if (args.Length == 1)
+            {
+                if (int.TryParse(args[0], out port) &&
+                    port > 1024 &&
+                    port < 65536 &&
+                    !IsPortOccupied(port))
+                {
+                    Console.WriteLine($"Server will listen on port {port}");
+                }
+                else
+                {
+                    Console.WriteLine($"Can't listen on port {args[0]}, shutting down...");
+
+                    Environment.Exit(0);
+                }
+            }
+            else
+            if (args.Length > 1)
+            {
+                Console.WriteLine("Invalid number of parameters");
+
+                Environment.Exit(0);
+            }
+
+            await _server.StartListening(port);
+        }
+
+        private static void OnExit(object sender, EventArgs e)
+        {
+            if (_server != null)
+            {
+                _server.DisconnectAll();
+            }
+        }
+
+        private static int AskPort()
+        {
+            var port = 0;
+            var isFreePortChosen = true;
+            var defaultPort = 56000;
+
+            do
+            {
+                Console.WriteLine("Enter port number of Chat Tracker:");
+                if (int.TryParse(Console.ReadLine(), out var portNumber) &&
+                    portNumber > 1024 &&
+                    portNumber < 65536)
+                {
+                    if (!IsPortOccupied(portNumber))
+                    {
+                        isFreePortChosen = true;
+                        port = portNumber;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Port {portNumber} is already occupied! Use port from range [1025; 65535]");
+                    }
+                }
+                else
+                {
+                    if (!IsPortOccupied(defaultPort))
+                    {
+                        isFreePortChosen = true;
+                        port = defaultPort;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Default port is already occupied, appliction will be shut down!");
+
+                        Environment.Exit(0);
+                    }
+                }
+            }
+            while (!isFreePortChosen);
+
+            return port;
         }
 
         private static void ClientAddedInCollection(object sender, EventArgs e)
@@ -186,51 +271,6 @@ namespace UdpHolePunchServerConsole
         private static bool IsPortOccupied(int port)
         {
             return IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners().Any(p => p.Port == port);
-        }
-
-        private static int AskPort()
-        {
-            var port = 0;
-            var isFreePortNotChosen = true;
-            var defaultPort = 56000;
-
-            do
-            {
-                Console.WriteLine("Enter port number of Chat Tracker:");
-                if (int.TryParse(Console.ReadLine(), out var portNumber) &&
-                    portNumber > 1024 &&
-                    portNumber < 65536)
-                {
-                    if (!IsPortOccupied(portNumber))
-                    {
-                        isFreePortNotChosen = false;
-                        port = portNumber;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Port {portNumber} is already occupied! Use port from range [1025; 65535]");
-                    }
-                }
-                else
-                {
-                    if (!IsPortOccupied(defaultPort))
-                    {
-                        Console.WriteLine($"Using default port: {defaultPort}");
-
-                        isFreePortNotChosen = false;
-                        port = defaultPort;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Default port is already occupied, appliction will be shut down!");
-
-                        Environment.Exit(0);
-                    }
-                }
-            }
-            while (isFreePortNotChosen);
-
-            return port;
         }
     }
 }

@@ -50,6 +50,7 @@ namespace UdpHolePunchServerConsole.Models
             catch (Exception e)
             {
                 Debug.WriteLine(e);
+
                 return null;
             }
         }

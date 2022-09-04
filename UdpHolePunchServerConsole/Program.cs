@@ -121,12 +121,12 @@ namespace UdpHolePunchServerConsole
 
         private static void ClientAddedInCollection(object sender, EventArgs e)
         {
-            Console.WriteLine("(ClientAddedInCollection)");
+            Console.WriteLine("(ClientAddedInCollection) 1");
         }
 
         private static void ClientRemovedFromCollection(object sender, EventArgs e)
         {
-            Console.WriteLine("(ClientRemovedFromCollection)");
+            Console.WriteLine("(ClientRemovedFromCollection) 2");
         }
 
         private static void ClientAdded(object sender, EncryptedPeerEventArgs e)

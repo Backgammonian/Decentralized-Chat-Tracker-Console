@@ -2,16 +2,16 @@
 
 namespace UdpHolePunchServerConsole
 {
-    public class DateTimeConverter
+    public static class DateTimeExtensions
     {
-        private readonly string[] _monthAbbreviations = new string[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        private static readonly string[] _monthAbbreviations = new string[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        private string Format(int number)
+        private static string Format(int number)
         {
             return number.ToString().Length == 1 ? "0" + number : "" + number;
         }
 
-        public string ConvertTime(DateTime time)
+        public static string ConvertTime(this DateTime time)
         {
             return string.Format("{0}:{1}:{2}, {3} {4} {5}",
                 time.Hour,

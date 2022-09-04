@@ -121,22 +121,22 @@ namespace UdpHolePunchServerConsole
 
         private static void ClientAddedInCollection(object sender, EventArgs e)
         {
-            Console.WriteLine("(ClientAddedInCollection) 1");
+            Console.WriteLine($"(ClientAddedInCollection) {DateTime.Now.ConvertTime()}");
         }
 
         private static void ClientRemovedFromCollection(object sender, EventArgs e)
         {
-            Console.WriteLine("(ClientRemovedFromCollection) 2");
+            Console.WriteLine($"(ClientRemovedFromCollection) {DateTime.Now.ConvertTime()}");
         }
 
         private static void ClientAdded(object sender, EncryptedPeerEventArgs e)
         {
-            Console.WriteLine("Client added: " + e.Peer.EndPoint);
+            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client added: {e.Peer.EndPoint}");
         }
 
         private static void ClientRemoved(object sender, EncryptedPeerEventArgs e)
         {
-            Console.WriteLine("Client removed: " + e.Peer.EndPoint);
+            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client removed: {e.Peer.EndPoint}");
 
             var user = _clients.Get(e.Peer);
             if (user == null)
@@ -153,8 +153,7 @@ namespace UdpHolePunchServerConsole
             var json = e.Json;
             var source = e.EncryptedPeer;
 
-            Console.WriteLine("(MessageReceived) source = " + source.EndPoint);
-            Console.WriteLine("(MessageReceived) type = " + type);
+            Console.WriteLine($"{DateTime.Now.ConvertTime()} (MessageReceived) Source = {source.EndPoint}, type = {type}");
 
             var sourceClient = _clients.Get(source);
 

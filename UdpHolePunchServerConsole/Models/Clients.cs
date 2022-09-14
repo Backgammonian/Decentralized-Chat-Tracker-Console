@@ -8,7 +8,7 @@ using Networking.Messages;
 
 namespace UdpHolePunchServerConsole.Models
 {
-    public class Clients
+    public sealed class Clients
     {
         //end point in string format, ClientModel object
         private readonly ConcurrentDictionary<string, ClientModel> _clients;

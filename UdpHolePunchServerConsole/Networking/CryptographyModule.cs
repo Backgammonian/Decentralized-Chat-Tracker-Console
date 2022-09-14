@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace Networking
 {
-    public class CryptographyModule
+    public sealed class CryptographyModule
     {
         private readonly ECDiffieHellmanCng _ecdh;
         private readonly CngKey _signature;

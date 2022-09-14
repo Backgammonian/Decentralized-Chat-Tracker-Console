@@ -4,7 +4,7 @@ using Networking.Messages;
 
 namespace UdpHolePunchServerConsole.Models
 {
-    public class ClientModel
+    public sealed class ClientModel
     {
         private readonly EncryptedPeer _peer;
         private long _messagesFromClientNumber;

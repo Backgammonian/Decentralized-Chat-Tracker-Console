@@ -8,7 +8,7 @@ using Networking.Messages;
 
 namespace Networking
 {
-    public class Server
+    public sealed class Server
     {
         private readonly EventBasedNetListener _listener;
         private readonly XorEncryptLayer _xor;

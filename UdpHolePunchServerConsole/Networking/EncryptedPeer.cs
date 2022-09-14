@@ -9,7 +9,7 @@ using Networking.Messages;
 
 namespace Networking
 {
-    public class EncryptedPeer
+    public sealed class EncryptedPeer
     {
         private readonly NetPeer _peer;
         private readonly CryptographyModule _cryptography;

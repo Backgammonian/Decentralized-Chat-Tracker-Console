@@ -58,7 +58,7 @@ namespace UdpHolePunchServerConsole
                 }
             }
             else
-            if (args.Length > 1)
+            if (args.Length != 1)
             {
                 Console.WriteLine("Invalid number of parameters");
 

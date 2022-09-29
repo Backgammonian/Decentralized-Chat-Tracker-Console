@@ -56,9 +56,9 @@ namespace Networking
             }
         }
 
-        public EncryptedPeer GetClientByID(int clientID)
+        public EncryptedPeer GetClientByPeerID(int peerID)
         {
-            return _clients.Has(clientID) ? _clients[clientID] : null;
+            return _clients.Get(peerID);
         }
 
         public void Stop()
@@ -101,21 +101,24 @@ namespace Networking
 
             _listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
             {
-                if (_clients.Has(fromPeer.Id) &&
-                    _clients[fromPeer.Id].IsSecurityEnabled &&
-                    _clients[fromPeer.Id].TryDecryptReceivedData(dataReader, out NetworkMessageType type, out string json))
+                var client = _clients.Get(fromPeer.Id);
+
+                if (client != null &&
+                    client.IsSecurityEnabled &&
+                    client.TryDecryptReceivedData(dataReader, out NetworkMessageType type, out string json))
                 {
-                    MessageReceived?.Invoke(this, new NetEventArgs(_clients[fromPeer.Id], type, json));
+                    MessageReceived?.Invoke(this, new NetEventArgs(client, type, json));
                 }
                 else
-                if (!_clients[fromPeer.Id].IsSecurityEnabled)
+                if (client != null &&
+                    !client.IsSecurityEnabled)
                 {
                     if (dataReader.TryGetBytesWithLength(out byte[] publicKey) &&
                         dataReader.TryGetBytesWithLength(out byte[] signaturePublicKey) &&
                         dataReader.TryGetULong(out ulong recepientsIncomingSegmentNumber))
                     {
-                        _clients[fromPeer.Id].ApplyKeys(publicKey, signaturePublicKey, recepientsIncomingSegmentNumber);
-                        _clients[fromPeer.Id].SendPublicKeys();
+                        client.ApplyKeys(publicKey, signaturePublicKey, recepientsIncomingSegmentNumber);
+                        client.SendPublicKeys();
                     }
                 }
 

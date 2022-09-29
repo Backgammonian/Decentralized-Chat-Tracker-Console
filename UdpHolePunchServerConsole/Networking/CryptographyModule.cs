@@ -6,13 +6,14 @@ namespace Networking
 {
     public sealed class CryptographyModule
     {
+        public const string DefaultFileHash = "---";
+
         private readonly ECDiffieHellmanCng _ecdh;
         private readonly CngKey _signature;
         private readonly byte[] _publicKey;
         private readonly byte[] _signaturePublicKey;
         private byte[] _privateKey;
         private byte[] _recipientsSignaturePublicKey;
-        private bool _isEnabled;
 
         public CryptographyModule()
         {
@@ -27,16 +28,15 @@ namespace Networking
             _privateKey = Array.Empty<byte>();
             _recipientsSignaturePublicKey = Array.Empty<byte>();
 
-            _isEnabled = false;
+            IsEnabled = false;
         }
 
         public byte[] PublicKey => (byte[])_publicKey.Clone();
         public byte[] SignaturePublicKey => (byte[])_signaturePublicKey.Clone();
-        public bool IsEnabled => _isEnabled;
-
+        public bool IsEnabled { get; private set; }
         public bool TrySetKeys(byte[] publicKey, byte[] signaturePublicKey)
         {
-            if (_isEnabled)
+            if (IsEnabled)
             {
                 return false;
             }
@@ -45,7 +45,7 @@ namespace Networking
             {
                 _privateKey = _ecdh.DeriveKeyMaterial(CngKey.Import(publicKey, CngKeyBlobFormat.EccPublicBlob));
                 _recipientsSignaturePublicKey = (byte[])signaturePublicKey.Clone();
-                _isEnabled = true;
+                IsEnabled = true;
 
                 return true;
             }
@@ -57,10 +57,10 @@ namespace Networking
 
         public bool TryCreateSignature(byte[] data, out byte[] dataSignature)
         {
-            if (!_isEnabled)
-            {
-                dataSignature = Array.Empty<byte>();
+            dataSignature = Array.Empty<byte>();
 
+            if (!IsEnabled)
+            {
                 return false;
             }
 
@@ -74,15 +74,13 @@ namespace Networking
             }
             catch (Exception)
             {
-                dataSignature = Array.Empty<byte>();
-        
                 return false;
             }
         }
 
         public bool TryVerifySignature(byte[] data, byte[] signature)
         {
-            if (!_isEnabled)
+            if (!IsEnabled)
             {
                 return false;
             }
@@ -104,11 +102,11 @@ namespace Networking
 
         public bool TryEncrypt(byte[] secretMessage, out byte[] encryptedMessage, out byte[] iv)
         {
-            if (!_isEnabled)
-            {
-                iv = Array.Empty<byte>();
-                encryptedMessage = Array.Empty<byte>();
+            iv = Array.Empty<byte>();
+            encryptedMessage = Array.Empty<byte>();
 
+            if (!IsEnabled)
+            {
                 return false;
             }
 
@@ -127,19 +125,16 @@ namespace Networking
             }
             catch (Exception)
             {
-                iv = Array.Empty<byte>();
-                encryptedMessage = Array.Empty<byte>();
-
                 return false;
             }
         }
 
         public bool TryDecrypt(byte[] encryptedMessage, byte[] iv, out byte[] decryptedMessage)
         {
-            if (!_isEnabled)
-            {
-                decryptedMessage = Array.Empty<byte>();
+            decryptedMessage = Array.Empty<byte>();
 
+            if (!IsEnabled)
+            {
                 return false;
             }
 
@@ -158,33 +153,28 @@ namespace Networking
             }
             catch (Exception)
             {
-                decryptedMessage = Array.Empty<byte>();
-
                 return false;
             }
         }
 
         public void Disable()
         {
-            _isEnabled = false;
+            IsEnabled = false;
         }
 
-        public static bool TryComputeFileHash(string path, out string fileHash)
+        public static string ComputeFileHash(string path)
         {
             try
             {
                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 10 * 1024 * 1024);
                 using var sha = SHA256.Create();
-                byte[] hash = sha.ComputeHash(fs);
-                fileHash = BitConverter.ToString(hash).ToLower().Replace("-", "");
+                var hash = sha.ComputeHash(fs);
 
-                return true;
+                return BitConverter.ToString(hash).ToLower().Replace("-", "");
             }
             catch (Exception)
             {
-                fileHash = string.Empty;
-
-                return false;
+                return DefaultFileHash;
             }
         }
     }

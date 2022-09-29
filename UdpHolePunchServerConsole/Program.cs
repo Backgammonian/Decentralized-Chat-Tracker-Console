@@ -38,7 +38,7 @@ namespace UdpHolePunchServerConsole
             if (args.Length == 0)
             {
                 port = AskPort();
-                Console.WriteLine($"Server will listen on port {port}");
+                Console.WriteLine($"Tracker will listen on port {port}");
             }
             else
             if (args.Length == 1)
@@ -48,11 +48,11 @@ namespace UdpHolePunchServerConsole
                     port < 65536 &&
                     !IsPortOccupied(port))
                 {
-                    Console.WriteLine($"Server will listen on port {port}");
+                    Console.WriteLine($"Tracker will listen on port {port}");
                 }
                 else
                 {
-                    Console.WriteLine($"Can't listen on port {args[0]}, shutting down...");
+                    Console.WriteLine($"Can't listen on port {args[0]}, shutting the tracker down...");
 
                     Environment.Exit(0);
                 }
@@ -173,7 +173,7 @@ namespace UdpHolePunchServerConsole
                     if (_clients.Has(clientIntroduceMessage.ID))
                     {
                         var errorMessage = new IntroduceClientToTrackerErrorMessage();
-                        source.SendEncrypted(errorMessage);
+                        source.SendEncrypted(errorMessage, 0);
 
                         return;
                     }
@@ -228,7 +228,7 @@ namespace UdpHolePunchServerConsole
             switch (command)
             {
                 case "connect":
-                    var desiredClient = _clients.GetByID(argument);
+                    var desiredClient = _clients.GetByUserID(argument);
                     if (desiredClient != null)
                     {
                         sourceClient.SendConnectionResponseMessage(desiredClient.ID, desiredClient.EndPoint);

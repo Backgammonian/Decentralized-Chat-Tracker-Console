@@ -18,12 +18,12 @@ namespace UdpHolePunchServerConsole.Models
             ConnectionTime = DateTime.Now;
         }
 
+        public string ID { get; }
+        public DateTime ConnectionTime { get; }
         public int PeerID => _peer.Id;
         public string EndPoint => _peer.EndPoint.ToString();
         public string Nickname => _nickname;
         public long MessagesFromClientNumber => _messagesFromClientNumber;
-        public string ID { get; }
-        public DateTime ConnectionTime { get; }
 
         public void IncreaseMessageCount()
         {
@@ -37,7 +37,7 @@ namespace UdpHolePunchServerConsole.Models
 
         private void Send(BaseMessage message)
         {
-            _peer.SendEncrypted(message);
+            _peer.SendEncrypted(message, 0);
         }
 
         public void SendConnectionResponseMessage(string desiredClientID, string desiredClientEndPoint)

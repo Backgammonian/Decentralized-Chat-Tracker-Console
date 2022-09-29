@@ -32,8 +32,7 @@ namespace UdpHolePunchServerConsole.Models
         public ClientModel Get(EncryptedPeer client)
         {
             var endPoint = client.EndPoint.ToString();
-            if (Has(endPoint) &&
-                _clients.TryGetValue(endPoint, out var desiredClient))
+            if (_clients.TryGetValue(endPoint, out var desiredClient))
             {
                 return desiredClient;
             }
@@ -41,7 +40,7 @@ namespace UdpHolePunchServerConsole.Models
             return null;
         }
 
-        public ClientModel GetByID(string id)
+        public ClientModel GetByUserID(string id)
         {
             try
             {

@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Timers;
-using System.Collections.Generic;
 using System.Net;
 using LiteNetLib;
 using LiteNetLib.Utils;
-using Networking.Utils;
 using Networking.Messages;
+using Networking.Utils;
 
 namespace Networking
 {
@@ -13,37 +12,22 @@ namespace Networking
     {
         private readonly NetPeer _peer;
         private readonly CryptographyModule _cryptography;
+        private readonly SpeedCounter _downloadSpeedCounter;
+        private readonly SpeedCounter _uploadSpeedCounter;
+        private readonly Timer _disconnectTimer;
+        private readonly Timer _pingUpdateTimer;
+        private readonly Timer _durationTimer;
         private ulong _incomingSegmentNumber;
         private ulong _outcomingSegmentNumber;
-
-        private readonly Timer _durationTimer;
-        private TimeSpan _connectionDuration;
-        private readonly Timer _disconnectTimer;
-
-        private const int _speedTimerInterval = 100;
-
-        private long _oldAmountOfDownloadedBytes, _newAmountOfDownloadedBytes;
-        private DateTime _oldDownloadTimeStamp, _newDownloadTimeStamp;
-        private long _bytesDownloaded;
-        private readonly Timer _downloadSpeedCounter;
-        private double _downloadSpeed;
-        private readonly Queue<double> _downloadSpeedValues;
-
-        private long _oldAmountOfUploadedBytes, _newAmountOfUploadedBytes;
-        private DateTime _oldUploadTimeStamp, _newUploadTimeStamp;
-        private long _bytesUploaded;
-        private readonly Timer _uploadSpeedCounter;
-        private double _uploadSpeed;
-        private readonly Queue<double> _uploadSpeedValues;
 
         public EncryptedPeer(NetPeer peer)
         {
             _peer = peer;
             _cryptography = new CryptographyModule();
             _incomingSegmentNumber = RandomGenerator.GetRandomULong();
+            _incomingSegmentNumber = _incomingSegmentNumber != 0 ? _incomingSegmentNumber - 1 : _incomingSegmentNumber;
             _outcomingSegmentNumber = RandomGenerator.GetRandomULong();
-
-            StartTime = DateTime.Now;
+            _outcomingSegmentNumber = _outcomingSegmentNumber != 0 ? _outcomingSegmentNumber - 1 : _outcomingSegmentNumber;
 
             _durationTimer = new Timer();
             _durationTimer.Interval = 1000;
@@ -55,35 +39,36 @@ namespace Networking
             _disconnectTimer.Elapsed += OnDisconnectTimerTick;
             _disconnectTimer.Start();
 
-            _downloadSpeedValues = new Queue<double>();
-            _downloadSpeedCounter = new Timer();
-            _downloadSpeedCounter.Interval = _speedTimerInterval;
-            _downloadSpeedCounter.Elapsed += OnDownloadSpeedCounterTick;
-            _downloadSpeedCounter.Start();
+            _pingUpdateTimer = new Timer();
+            _pingUpdateTimer.Interval = 200;
+            _pingUpdateTimer.Elapsed += OnPingUdpateTimerTick;
+            _pingUpdateTimer.Start();
 
-            _uploadSpeedValues = new Queue<double>();
-            _uploadSpeedCounter = new Timer();
-            _uploadSpeedCounter.Interval = _speedTimerInterval;
-            _uploadSpeedCounter.Elapsed += OnUploadSpeedCounterTick;
-            _uploadSpeedCounter.Start();
+            _downloadSpeedCounter = new SpeedCounter();
+            _downloadSpeedCounter.Updated += OnDownloadSpeedCounterUpdated;
+            _uploadSpeedCounter = new SpeedCounter();
+            _uploadSpeedCounter.Updated += OnUploadSpeedCounterUpdated;
+
+            StartTime = DateTime.Now;
         }
 
         public event EventHandler<EncryptedPeerEventArgs> PeerDisconnected;
 
-        public bool IsSecurityEnabled => _cryptography.IsEnabled;
+        public DateTime StartTime { get; }
         public int Id => _peer.Id;
         public IPEndPoint EndPoint => _peer.EndPoint;
-        public int Ping => _peer.Ping;
-        public long PacketLossPercent => _peer.Statistics.PacketLossPercent;
         public ConnectionState ConnectionState => _peer.ConnectionState;
-        public TimeSpan ConnectionDuration => _connectionDuration;
-        public double DownloadSpeed => _downloadSpeed;
-        public double UploadSpeed => _uploadSpeed;
-        public DateTime StartTime { get; }
+        public bool IsSecurityEnabled { get; private set; }
+        public int Ping { get; private set; }
+        public double DownloadSpeed { get; private set; }
+        public double UploadSpeed { get; private set; }
+        public long BytesDownloaded { get; private set; }
+        public long BytesUploaded { get; private set; }
+        public TimeSpan ConnectionDuration { get; private set; }
 
         private void OnDurationTimerTick(object sender, ElapsedEventArgs e)
         {
-            _connectionDuration = DateTime.Now - StartTime;
+            ConnectionDuration = DateTime.Now - StartTime;
         }
 
         private void OnDisconnectTimerTick(object sender, ElapsedEventArgs e)
@@ -96,56 +81,32 @@ namespace Networking
             }
         }
 
-        private void OnDownloadSpeedCounterTick(object sender, ElapsedEventArgs e)
+        private void OnDownloadSpeedCounterUpdated(object sender, EventArgs e)
         {
-            _oldAmountOfDownloadedBytes = _newAmountOfDownloadedBytes;
-            _newAmountOfDownloadedBytes = _bytesDownloaded;
-
-            _oldDownloadTimeStamp = _newDownloadTimeStamp;
-            _newDownloadTimeStamp = DateTime.Now;
-
-            var value = (_newAmountOfDownloadedBytes - _oldAmountOfDownloadedBytes) / (_newDownloadTimeStamp - _oldDownloadTimeStamp).TotalSeconds;
-            _downloadSpeedValues.Enqueue(value);
-
-            if (_downloadSpeedValues.Count > 20)
-            {
-                _downloadSpeedValues.Dequeue();
-            }
-
-            _downloadSpeed = _downloadSpeedValues.CalculateAverageValue();
+            DownloadSpeed = _downloadSpeedCounter.Speed;
+            BytesDownloaded = _downloadSpeedCounter.Bytes;
         }
 
-        private void OnUploadSpeedCounterTick(object sender, ElapsedEventArgs e)
+        private void OnUploadSpeedCounterUpdated(object sender, EventArgs e)
         {
-            _oldAmountOfUploadedBytes = _newAmountOfUploadedBytes;
-            _newAmountOfUploadedBytes = _bytesUploaded;
+            UploadSpeed = _uploadSpeedCounter.Speed;
+            BytesUploaded = _uploadSpeedCounter.Bytes;
+        }
 
-            _oldUploadTimeStamp = _newUploadTimeStamp;
-            _newUploadTimeStamp = DateTime.Now;
-
-            var value = (_newAmountOfUploadedBytes - _oldAmountOfUploadedBytes) / (_newUploadTimeStamp - _oldUploadTimeStamp).TotalSeconds;
-            _uploadSpeedValues.Enqueue(value);
-
-            if (_uploadSpeedValues.Count > 20)
-            {
-                _uploadSpeedValues.Dequeue();
-            }
-
-            _uploadSpeed = _uploadSpeedValues.CalculateAverageValue();
+        private void OnPingUdpateTimerTick(object sender, ElapsedEventArgs e)
+        {
+            Ping = _peer.Ping;
         }
 
         public void SendPublicKeys()
         {
             var data = new NetDataWriter();
-
             var publicKey = _cryptography.PublicKey;
             data.Put(publicKey.Length);
             data.Put(publicKey);
-
             var signaturePublicKey = _cryptography.SignaturePublicKey;
             data.Put(signaturePublicKey.Length);
             data.Put(signaturePublicKey);
-
             data.Put(_incomingSegmentNumber);
 
             _peer.Send(data, 0, DeliveryMethod.ReliableOrdered);
@@ -156,6 +117,7 @@ namespace Networking
             if (_cryptography.TrySetKeys(publicKey, signaturePublicKey))
             {
                 _outcomingSegmentNumber = recepientsIncomingSegmentNumber;
+                IsSecurityEnabled = _cryptography.IsEnabled;
             }
             else
             {
@@ -163,13 +125,14 @@ namespace Networking
             }
         }
 
-        public void SendEncrypted(BaseMessage message)
-        {
-            SendEncrypted(message, RandomGenerator.GetPseudoRandomByte(0, NetworkingConstants.ChannelsCount));
-        }
-
         public void SendEncrypted(BaseMessage message, byte channelNumber)
         {
+            if (channelNumber < 0 ||
+                channelNumber >= _peer.NetManager.ChannelsCount)
+            {
+                return;
+            }
+
             var messageContent = message.GetContent();
             messageContent.Put(_outcomingSegmentNumber);
 
@@ -191,12 +154,10 @@ namespace Networking
                 outcomingMessage.PutBytesWithLength(encryptedMessage);
                 outcomingMessage.PutBytesWithLength(signature);
                 outcomingMessage.PutBytesWithLength(iv);
-                outcomingMessage.Put(CRC32.Compute(encryptedMessage));
 
-                _peer.Send(outcomingMessage.Data, channelNumber, DeliveryMethod.ReliableOrdered);
+                _peer.Send(outcomingMessage, channelNumber, DeliveryMethod.ReliableOrdered);
 
-                _bytesUploaded += outcomingMessage.Data.Length;
-
+                _uploadSpeedCounter.AddBytes(outcomingMessage.Data.Length);
                 _outcomingSegmentNumber += 1;
                 _outcomingSegmentNumber = _outcomingSegmentNumber == ulong.MaxValue ? 0 : _outcomingSegmentNumber;
             }
@@ -215,17 +176,14 @@ namespace Networking
             if (incomingDataReader.TryGetBytesWithLength(out byte[] encryptedMessage) &&
                 incomingDataReader.TryGetBytesWithLength(out byte[] signature) &&
                 incomingDataReader.TryGetBytesWithLength(out byte[] iv) &&
-                incomingDataReader.TryGetUInt(out uint receivedCrc32) &&
-                CRC32.Compute(encryptedMessage) == receivedCrc32 &&
                 _cryptography.TryDecrypt(encryptedMessage, iv, out byte[] decryptedMessage) &&
                 decryptedMessage.TryDecompressByteArray(out byte[] decompressedMessage) &&
                 _cryptography.TryVerifySignature(decompressedMessage, signature))
             {
                 var messageReader = new NetDataReader(decompressedMessage);
 
-                if (messageReader.TryGetByte(out byte type) &&
-                    Enum.TryParse(typeof(NetworkMessageType), type + "", out object networkMessageType) &&
-                    networkMessageType != null &&
+                if (messageReader.TryGetByte(out byte typeByte) &&
+                    typeByte.TryParseType(out NetworkMessageType type) &&
                     messageReader.TryGetString(out string json) &&
                     messageReader.TryGetULong(out ulong recepientsOutcomingSegmentNumber) &&
                     recepientsOutcomingSegmentNumber == _incomingSegmentNumber)
@@ -233,9 +191,9 @@ namespace Networking
                     _incomingSegmentNumber += 1;
                     _incomingSegmentNumber = _incomingSegmentNumber == ulong.MaxValue ? 0 : _incomingSegmentNumber;
 
-                    _bytesDownloaded += incomingDataReader.RawDataSize;
+                    _downloadSpeedCounter.AddBytes(incomingDataReader.RawDataSize);
 
-                    messageType = (NetworkMessageType)networkMessageType;
+                    messageType = type;
                     outputJson = json;
 
                     return true;
@@ -254,8 +212,14 @@ namespace Networking
             _disconnectTimer.Stop();
             _downloadSpeedCounter.Stop();
             _uploadSpeedCounter.Stop();
+            _pingUpdateTimer.Stop();
 
             PeerDisconnected?.Invoke(this, new EncryptedPeerEventArgs(this));
+        }
+
+        public override string ToString()
+        {
+            return _peer.EndPoint.ToString();
         }
     }
 }

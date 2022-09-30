@@ -17,17 +17,11 @@ namespace Networking
         private readonly Timer _disconnectTimer;
         private readonly Timer _pingUpdateTimer;
         private readonly Timer _durationTimer;
-        private ulong _incomingSegmentNumber;
-        private ulong _outcomingSegmentNumber;
 
         public EncryptedPeer(NetPeer peer)
         {
             _peer = peer;
             _cryptography = new CryptographyModule();
-            _incomingSegmentNumber = RandomGenerator.GetRandomULong();
-            _incomingSegmentNumber = _incomingSegmentNumber != 0 ? _incomingSegmentNumber - 1 : _incomingSegmentNumber;
-            _outcomingSegmentNumber = RandomGenerator.GetRandomULong();
-            _outcomingSegmentNumber = _outcomingSegmentNumber != 0 ? _outcomingSegmentNumber - 1 : _outcomingSegmentNumber;
 
             _durationTimer = new Timer();
             _durationTimer.Interval = 1000;
@@ -107,16 +101,14 @@ namespace Networking
             var signaturePublicKey = _cryptography.SignaturePublicKey;
             data.Put(signaturePublicKey.Length);
             data.Put(signaturePublicKey);
-            data.Put(_incomingSegmentNumber);
 
             _peer.Send(data, 0, DeliveryMethod.ReliableOrdered);
         }
 
-        public void ApplyKeys(byte[] publicKey, byte[] signaturePublicKey, ulong recepientsIncomingSegmentNumber)
+        public void ApplyKeys(byte[] publicKey, byte[] signaturePublicKey)
         {
             if (_cryptography.TrySetKeys(publicKey, signaturePublicKey))
             {
-                _outcomingSegmentNumber = recepientsIncomingSegmentNumber;
                 IsSecurityEnabled = _cryptography.IsEnabled;
             }
             else
@@ -133,10 +125,7 @@ namespace Networking
                 return;
             }
 
-            var messageContent = message.GetContent();
-            messageContent.Put(_outcomingSegmentNumber);
-
-            SendEncrypted(messageContent.Data, channelNumber);
+            SendEncrypted(message.GetContent().Data, channelNumber);
         }
 
         private void SendEncrypted(byte[] message, byte channelNumber)
@@ -156,10 +145,7 @@ namespace Networking
                 outcomingMessage.PutBytesWithLength(iv);
 
                 _peer.Send(outcomingMessage, channelNumber, DeliveryMethod.ReliableOrdered);
-
                 _uploadSpeedCounter.AddBytes(outcomingMessage.Data.Length);
-                _outcomingSegmentNumber += 1;
-                _outcomingSegmentNumber = _outcomingSegmentNumber == ulong.MaxValue ? 0 : _outcomingSegmentNumber;
             }
         }
 
@@ -181,16 +167,10 @@ namespace Networking
                 _cryptography.TryVerifySignature(decompressedMessage, signature))
             {
                 var messageReader = new NetDataReader(decompressedMessage);
-
                 if (messageReader.TryGetByte(out byte typeByte) &&
                     typeByte.TryParseType(out NetworkMessageType type) &&
-                    messageReader.TryGetString(out string json) &&
-                    messageReader.TryGetULong(out ulong recepientsOutcomingSegmentNumber) &&
-                    recepientsOutcomingSegmentNumber == _incomingSegmentNumber)
+                    messageReader.TryGetString(out string json))
                 {
-                    _incomingSegmentNumber += 1;
-                    _incomingSegmentNumber = _incomingSegmentNumber == ulong.MaxValue ? 0 : _incomingSegmentNumber;
-
                     _downloadSpeedCounter.AddBytes(incomingDataReader.RawDataSize);
 
                     messageType = type;

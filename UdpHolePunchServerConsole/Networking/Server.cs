@@ -111,15 +111,12 @@ namespace Networking
                 }
                 else
                 if (client != null &&
-                    !client.IsSecurityEnabled)
+                    !client.IsSecurityEnabled &&
+                    dataReader.TryGetBytesWithLength(out byte[] publicKey) &&
+                    dataReader.TryGetBytesWithLength(out byte[] signaturePublicKey))
                 {
-                    if (dataReader.TryGetBytesWithLength(out byte[] publicKey) &&
-                        dataReader.TryGetBytesWithLength(out byte[] signaturePublicKey) &&
-                        dataReader.TryGetULong(out ulong recepientsIncomingSegmentNumber))
-                    {
-                        client.ApplyKeys(publicKey, signaturePublicKey, recepientsIncomingSegmentNumber);
-                        client.SendPublicKeys();
-                    }
+                    client.ApplyKeys(publicKey, signaturePublicKey);
+                    client.SendPublicKeys();
                 }
 
                 dataReader.Recycle();

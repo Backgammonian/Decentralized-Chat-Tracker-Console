@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Networking;
 using Networking.Messages;
 
@@ -88,9 +89,9 @@ namespace UdpHolePunchServerConsole.Models
             Send(responseMessage);
         }
 
-        public void SendListOfUsersWithSpecifiedNickname(UserInfoFromTracker[] users)
+        public void SendListOfUsersWithSpecifiedNickname(string nicknameQuery, List<UserInfoFromTracker> users)
         {
-            var message = new ListOfUsersWithDesiredNicknameMessage(users);
+            var message = new ListOfUsersWithDesiredNicknameMessage(users, nicknameQuery);
             Send(message);
         }
     }

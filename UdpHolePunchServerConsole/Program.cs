@@ -14,7 +14,6 @@ namespace UdpHolePunchServerConsole
     {
         private static Server _server;
         private static Clients _clients;
-        private static Timer _keepAliveTimer;
 
         static async Task Main(string[] args)
         {
@@ -28,11 +27,6 @@ namespace UdpHolePunchServerConsole
             _server.ClientAdded += ClientAdded;
             _server.ClientRemoved += ClientRemoved;
             _server.MessageReceived += MessageReceived;
-
-            _keepAliveTimer = new Timer();
-            _keepAliveTimer.Interval = 5000;
-            _keepAliveTimer.Elapsed += OnKeepAliveTimerTick;
-            _keepAliveTimer.Start();
 
             var port = 0;
             if (args.Length == 0)
@@ -159,10 +153,6 @@ namespace UdpHolePunchServerConsole
 
             switch (type)
             {
-                case NetworkMessageType.KeepAlive:
-                    Console.WriteLine($"KeepAliveMessage from {source.EndPoint}");
-                    break;
-
                 case NetworkMessageType.IntroduceClientToTracker:
                     var clientIntroduceMessage = JsonConvert.DeserializeObject<IntroduceClientToTrackerMessage>(json);
                     if (clientIntroduceMessage == null)
@@ -238,9 +228,9 @@ namespace UdpHolePunchServerConsole
                     }
 
                     var clientsWithSpecifiedNickname = _clients.GetByNickname(argument);
-                    if (clientsWithSpecifiedNickname.Length > 0)
+                    if (clientsWithSpecifiedNickname.Count > 0)
                     {
-                        sourceClient.SendListOfUsersWithSpecifiedNickname(clientsWithSpecifiedNickname);
+                        sourceClient.SendListOfUsersWithSpecifiedNickname(argument, clientsWithSpecifiedNickname);
 
                         break;
                     }
@@ -260,11 +250,6 @@ namespace UdpHolePunchServerConsole
                     sourceClient.SendCommandErrorMessage(commandMessage.Command, commandMessage.Argument);
                     break;
             }
-        }
-
-        private static void OnKeepAliveTimerTick(object sender, ElapsedEventArgs e)
-        {
-            _server.SendToAll(new KeepAliveMessage());
         }
 
         private static bool IsPortOccupied(int port)

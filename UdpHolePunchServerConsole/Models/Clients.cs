@@ -46,20 +46,20 @@ namespace UdpHolePunchServerConsole.Models
             {
                 return _clients.Values.First(client => client.ID == id);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Debug.WriteLine(e);
+                Debug.WriteLine($"(GetByUserID) Can't find user: {id}");
 
                 return null;
             }
         }
 
-        public UserInfoFromTracker[] GetByNickname(string nickname)
+        public List<UserInfoFromTracker> GetByNickname(string nickname)
         {
             return _clients.Values
                 .Where(client => client.Nickname == nickname)
                 .Select(client => new UserInfoFromTracker(client.Nickname, client.ID))
-                .ToArray();
+                .ToList();
         }
 
         public void Add(ClientModel client)

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
-using System.Timers;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Networking;
 using Networking.Messages;
+using Extensions;
 using UdpHolePunchServerConsole.Models;
 
 namespace UdpHolePunchServerConsole

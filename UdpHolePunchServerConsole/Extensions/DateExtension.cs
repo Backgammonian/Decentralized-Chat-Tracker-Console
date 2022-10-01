@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace UdpHolePunchServerConsole
+namespace Extensions
 {
-    public static class DateTimeExtensions
+    public static class DateExtension
     {
         private static readonly string[] _monthAbbreviations = new string[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 

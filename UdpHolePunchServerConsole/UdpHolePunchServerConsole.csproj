@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Cryptography\NetworkingLib\NetworkingLib\NetworkingLib.csproj" />
+    <PackageReference Include="litenetlib" Version="0.9.5.2" />
+    <PackageReference Include="newtonsoft.json" Version="13.0.1" />
   </ItemGroup>
 
 </Project>

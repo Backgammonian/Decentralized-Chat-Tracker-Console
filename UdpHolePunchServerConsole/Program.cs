@@ -63,11 +63,21 @@ namespace UdpHolePunchServerConsole
                 while (true)
                 {
                     Console.WriteLine("Enter 'quit' to stop the tracker");
-                    var input = Console.ReadLine();
-                    if (input.ToLower().Contains("quit"))
+                    Console.WriteLine("Enter 'info' to print current parameters of the tracker");
+                    var line = Console.ReadLine();
+                    var input = line.ToLower();
+                    
+                    if (input == "quit")
                     {
                         _server.Stop();
+
                         break;
+                    }
+                    else
+                    if (input == "info")
+                    {
+                        Console.WriteLine($"Port: {_server.LocalPort}, current users number: {_clients.Count}");
+                        Console.WriteLine();
                     }
                 }
             }

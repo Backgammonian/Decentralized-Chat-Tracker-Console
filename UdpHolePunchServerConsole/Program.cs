@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Networking;
-using Networking.Messages;
+using NetworkingLib;
+using NetworkingLib.Messages;
 using Extensions;
 using UdpHolePunchServerConsole.Models;
 
@@ -13,9 +10,10 @@ namespace UdpHolePunchServerConsole
     class Program
     {
         private static Server _server;
+        private static bool _canStart;
         private static Clients _clients;
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             AppDomain.CurrentDomain.ProcessExit += OnExit;
 
@@ -26,7 +24,9 @@ namespace UdpHolePunchServerConsole
             _server = new Server();
             _server.ClientAdded += ClientAdded;
             _server.ClientRemoved += ClientRemoved;
-            _server.MessageReceived += MessageReceived;
+            _server.MessageFromClientReceived += MessageReceived;
+
+            _canStart = false;
 
             var port = 0;
             if (args.Length == 0)
@@ -40,26 +40,37 @@ namespace UdpHolePunchServerConsole
                 if (int.TryParse(args[0], out port) &&
                     port > 1024 &&
                     port < 65536 &&
-                    !IsPortOccupied(port))
+                    !port.IsPortOccupied())
                 {
+                    _canStart = true;
                     Console.WriteLine($"Tracker will listen on port {port}");
                 }
                 else
                 {
                     Console.WriteLine($"Can't listen on port {args[0]}, shutting the tracker down...");
-
-                    Environment.Exit(0);
                 }
             }
             else
             if (args.Length != 1)
             {
                 Console.WriteLine("Invalid number of parameters");
-
-                Environment.Exit(0);
             }
 
-            await _server.StartListening(port);
+            if (_canStart)
+            {
+                _server.StartListening(port);
+
+                while (true)
+                {
+                    Console.WriteLine("Enter 'quit' to stop the tracker");
+                    var input = Console.ReadLine();
+                    if (input.ToLower().Contains("quit"))
+                    {
+                        _server.Stop();
+                        break;
+                    }
+                }
+            }
         }
 
         private static void OnExit(object sender, EventArgs e)
@@ -79,14 +90,16 @@ namespace UdpHolePunchServerConsole
             do
             {
                 Console.WriteLine("Enter port number of Chat Tracker:");
+
                 if (int.TryParse(Console.ReadLine(), out var portNumber) &&
                     portNumber > 1024 &&
                     portNumber < 65536)
                 {
-                    if (!IsPortOccupied(portNumber))
+                    if (!portNumber.IsPortOccupied())
                     {
                         isFreePortChosen = true;
                         port = portNumber;
+                        _canStart = true;
                     }
                     else
                     {
@@ -95,16 +108,17 @@ namespace UdpHolePunchServerConsole
                 }
                 else
                 {
-                    if (!IsPortOccupied(defaultPort))
+                    if (!defaultPort.IsPortOccupied())
                     {
                         isFreePortChosen = true;
                         port = defaultPort;
+                        _canStart = true;
                     }
                     else
                     {
-                        Console.WriteLine("Default port is already occupied, appliction will be shut down!");
+                        Console.WriteLine($"Default port {defaultPort} is already occupied, appliction will be shut down!");
 
-                        Environment.Exit(0);
+                        break;
                     }
                 }
             }
@@ -125,14 +139,14 @@ namespace UdpHolePunchServerConsole
 
         private static void ClientAdded(object sender, EncryptedPeerEventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client added: {e.Peer.EndPoint}");
+            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client added: {e.EndPoint}");
         }
 
         private static void ClientRemoved(object sender, EncryptedPeerEventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client removed: {e.Peer.EndPoint}");
+            Console.WriteLine($"{DateTime.Now.ConvertTime()} Client removed: {e.EndPoint}");
 
-            var user = _clients.Get(e.Peer);
+            var user = _clients.GetByAddress(e.EndPoint);
             if (user == null)
             {
                 return;
@@ -149,7 +163,7 @@ namespace UdpHolePunchServerConsole
 
             Console.WriteLine($"{DateTime.Now.ConvertTime()} (MessageReceived) Source = {source.EndPoint}, type = {type}");
 
-            var sourceClient = _clients.Get(source);
+            var sourceClient = _clients.GetByAddress(source.EndPoint);
 
             switch (type)
             {
@@ -250,11 +264,6 @@ namespace UdpHolePunchServerConsole
                     sourceClient.SendCommandErrorMessage(commandMessage.Command, commandMessage.Argument);
                     break;
             }
-        }
-
-        private static bool IsPortOccupied(int port)
-        {
-            return IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners().Any(p => p.Port == port);
         }
     }
 }

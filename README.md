@@ -5,4 +5,3 @@ This project implements the rendevous server of [my decentralized chat applicati
 ## Libraries used in this project:
 * [LiteNetLib](https://github.com/RevenantX/LiteNetLib)
 * [Newtonsoft.Json](https://www.newtonsoft.com/json)
-* [System.Security.Cryptography.Cng](https://www.nuget.org/packages/System.Security.Cryptography.Cng/)

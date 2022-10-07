@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using Networking;
-using Networking.Messages;
+using NetworkingLib;
+using NetworkingLib.Messages;
 
 namespace UdpHolePunchServerConsole.Models
 {
-    public sealed class ClientModel
+    public sealed class ClientModel : IDisposable
     {
         private readonly EncryptedPeer _peer;
         private long _messagesFromClientNumber;
         private string _nickname = string.Empty;
+        private bool _isDisposed;
 
         public ClientModel(EncryptedPeer peer, string id, string nickname)
         {
@@ -93,6 +94,25 @@ namespace UdpHolePunchServerConsole.Models
         {
             var message = new ListOfUsersWithDesiredNicknameMessage(users, nicknameQuery);
             Send(message);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                if (disposing)
+                {
+                    _peer.Dispose();
+                }
+
+                _isDisposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

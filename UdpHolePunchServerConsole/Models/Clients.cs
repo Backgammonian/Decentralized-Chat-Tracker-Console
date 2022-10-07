@@ -3,15 +3,16 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using Networking;
-using Networking.Messages;
+using System.Net;
+using NetworkingLib.Messages;
 
 namespace UdpHolePunchServerConsole.Models
 {
-    public sealed class Clients
+    public sealed class Clients : IDisposable
     {
         //end point in string format, ClientModel object
         private readonly ConcurrentDictionary<string, ClientModel> _clients;
+        private bool _isDisposed;
 
         public Clients()
         {
@@ -29,9 +30,9 @@ namespace UdpHolePunchServerConsole.Models
             return _clients.ContainsKey(endPoint);
         }
 
-        public ClientModel Get(EncryptedPeer client)
+        public ClientModel GetByAddress(IPEndPoint clientEndPoint)
         {
-            var endPoint = client.EndPoint.ToString();
+            var endPoint = clientEndPoint.ToString();
             if (_clients.TryGetValue(endPoint, out var desiredClient))
             {
                 return desiredClient;
@@ -79,6 +80,28 @@ namespace UdpHolePunchServerConsole.Models
             {
                 ClientRemoved?.Invoke(this, EventArgs.Empty);
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                if (disposing)
+                {
+                    foreach (var keyPair in _clients)
+                    {
+                        keyPair.Value.Dispose();
+                    }
+                }
+
+                _isDisposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

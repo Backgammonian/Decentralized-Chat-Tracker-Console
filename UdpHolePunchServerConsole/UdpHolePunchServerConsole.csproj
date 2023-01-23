@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NetworkingLib\NetworkingLib.csproj" />
+    <Compile Remove="NetworkingLib\**" />
+    <EmbeddedResource Remove="NetworkingLib\**" />
+    <None Remove="NetworkingLib\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="NetworkingLib\" />
+    <ProjectReference Include="..\NetworkingLib\NetworkingLib.csproj" />
   </ItemGroup>
 
 </Project>

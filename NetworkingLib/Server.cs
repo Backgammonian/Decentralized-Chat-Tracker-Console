@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using LiteNetLib;
 using LiteNetLib.Layers;
 using NetworkingLib.Messages;
+using Newtonsoft.Json.Linq;
 
 namespace NetworkingLib
 {
@@ -20,7 +21,7 @@ namespace NetworkingLib
         public Server()
         {
             _listener = new EventBasedNetListener();
-            _xor = new XorEncryptLayer("VerySecretSymmetricXorPassword3923");
+            _xor = new XorEncryptLayer(NetworkingConstants.XorLayerPassword);
             _server = new NetManager(_listener, _xor);
             _server.ChannelsCount = NetworkingConstants.ChannelsCount;
             _server.DisconnectTimeout = NetworkingConstants.DisconnectionTimeoutMilliseconds;
@@ -83,7 +84,7 @@ namespace NetworkingLib
             }
         }
 
-        public void StartListening(int port)
+        private void Configure(int port)
         {
             _server.Start(port);
 
@@ -129,8 +130,18 @@ namespace NetworkingLib
 
                 dataReader.Recycle();
             };
+        }
 
+        public void StartListening(int port)
+        {
+            Configure(port);
             _listenTask.Start();
+        }
+
+        public async Task StartListeningAsync(int port)
+        {
+            Configure(port);
+            await _listenTask;
         }
     }
 }

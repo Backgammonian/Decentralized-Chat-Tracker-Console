@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Timers;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NetworkingLib;
 using NetworkingLib.Messages;
@@ -10,10 +12,10 @@ namespace UdpHolePunchServerConsole
     class Program
     {
         private static Server _server;
-        private static bool _canStart;
         private static Clients _clients;
+        private static Timer _logTimer;
 
-        static void Main(string[] args)
+        static async Task Main()
         {
             AppDomain.CurrentDomain.ProcessExit += OnExit;
 
@@ -26,61 +28,13 @@ namespace UdpHolePunchServerConsole
             _server.ClientRemoved += ClientRemoved;
             _server.MessageFromClientReceived += MessageReceived;
 
-            _canStart = false;
+            _logTimer = new Timer();
+            _logTimer.Interval = 5000;
+            _logTimer.Elapsed += OnLogTimerElapsed;
+            _logTimer.Start();
 
-            var port = 0;
-            if (args.Length == 0)
-            {
-                port = AskPort();
-                Console.WriteLine($"Tracker will listen on port {port}");
-            }
-            else
-            if (args.Length == 1)
-            {
-                if (int.TryParse(args[0], out port) &&
-                    port > 1024 &&
-                    port < 65536 &&
-                    !port.IsPortOccupied())
-                {
-                    _canStart = true;
-                    Console.WriteLine($"Tracker will listen on port {port}");
-                }
-                else
-                {
-                    Console.WriteLine($"Can't listen on port {args[0]}, shutting the tracker down...");
-                }
-            }
-            else
-            if (args.Length != 1)
-            {
-                Console.WriteLine("Invalid number of parameters");
-            }
-
-            if (_canStart)
-            {
-                _server.StartListening(port);
-
-                while (true)
-                {
-                    Console.WriteLine("Enter 'quit' to stop the tracker");
-                    Console.WriteLine("Enter 'info' to print current parameters of the tracker");
-                    var line = Console.ReadLine();
-                    var input = line.ToLower();
-                    
-                    if (input == "quit")
-                    {
-                        _server.Stop();
-
-                        break;
-                    }
-                    else
-                    if (input == "info")
-                    {
-                        Console.WriteLine($"Port: {_server.LocalPort}, current users number: {_clients.Count}");
-                        Console.WriteLine();
-                    }
-                }
-            }
+            var portNumber = 55000;
+            await _server.StartListeningAsync(portNumber);
         }
 
         private static void OnExit(object sender, EventArgs e)
@@ -91,50 +45,10 @@ namespace UdpHolePunchServerConsole
             }
         }
 
-        private static int AskPort()
+        private static void OnLogTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            var port = 0;
-            var isFreePortChosen = true;
-            var defaultPort = 56000;
-
-            do
-            {
-                Console.WriteLine("Enter port number of Chat Tracker:");
-
-                if (int.TryParse(Console.ReadLine(), out var portNumber) &&
-                    portNumber > 1024 &&
-                    portNumber < 65536)
-                {
-                    if (!portNumber.IsPortOccupied())
-                    {
-                        isFreePortChosen = true;
-                        port = portNumber;
-                        _canStart = true;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Port {portNumber} is already occupied! Use port from range [1025; 65535]");
-                    }
-                }
-                else
-                {
-                    if (!defaultPort.IsPortOccupied())
-                    {
-                        isFreePortChosen = true;
-                        port = defaultPort;
-                        _canStart = true;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Default port {defaultPort} is already occupied, appliction will be shut down!");
-
-                        break;
-                    }
-                }
-            }
-            while (!isFreePortChosen);
-
-            return port;
+            Console.WriteLine($"(Log) Port: {_server.LocalPort}");
+            Console.WriteLine($"(Log) Current number of users: {_clients.Count}");
         }
 
         private static void ClientAddedInCollection(object sender, EventArgs e)

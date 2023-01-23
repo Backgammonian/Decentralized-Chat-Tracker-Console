@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31515.178
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UdpHolePunchServerConsole", "UdpHolePunchServerConsole\UdpHolePunchServerConsole.csproj", "{D7E0D51C-91E7-45AB-90EF-0681BA6331E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkingLib", "NetworkingLib\NetworkingLib.csproj", "{99ED5B96-C5AF-48F6-B27F-461C593C9F28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkingLib.Tests", "NetworkingLib.Tests\NetworkingLib.Tests.csproj", "{1F874C77-563C-4E14-8581-10E96898B6E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{D7E0D51C-91E7-45AB-90EF-0681BA6331E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7E0D51C-91E7-45AB-90EF-0681BA6331E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7E0D51C-91E7-45AB-90EF-0681BA6331E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99ED5B96-C5AF-48F6-B27F-461C593C9F28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99ED5B96-C5AF-48F6-B27F-461C593C9F28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99ED5B96-C5AF-48F6-B27F-461C593C9F28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99ED5B96-C5AF-48F6-B27F-461C593C9F28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F874C77-563C-4E14-8581-10E96898B6E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F874C77-563C-4E14-8581-10E96898B6E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F874C77-563C-4E14-8581-10E96898B6E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F874C77-563C-4E14-8581-10E96898B6E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -33,8 +33,15 @@ namespace UdpHolePunchServerConsole
             _logTimer.Elapsed += OnLogTimerElapsed;
             _logTimer.Start();
 
-            var portNumber = 55000;
-            await _server.StartListeningAsync(portNumber);
+            var portNumber = 65000;
+            PrintLog();
+            //await _server.StartListeningAsync(portNumber);
+            _server.StartListening(portNumber);
+
+            while (true)
+            {
+               await Task.Delay(50);
+            }
         }
 
         private static void OnExit(object sender, EventArgs e)
@@ -45,10 +52,16 @@ namespace UdpHolePunchServerConsole
             }
         }
 
-        private static void OnLogTimerElapsed(object sender, ElapsedEventArgs e)
+        private static void PrintLog()
         {
             Console.WriteLine($"(Log) Port: {_server.LocalPort}");
             Console.WriteLine($"(Log) Current number of users: {_clients.Count}");
+            Console.WriteLine($"(Log) Is server running: {_server.IsRunning}");
+        }
+
+        private static void OnLogTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            PrintLog();
         }
 
         private static void ClientAddedInCollection(object sender, EventArgs e)

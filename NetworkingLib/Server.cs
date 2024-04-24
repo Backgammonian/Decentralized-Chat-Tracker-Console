@@ -39,6 +39,7 @@ namespace NetworkingLib
 
         public int LocalPort => _server.LocalPort;
         public byte ChannelsCount => _server.ChannelsCount;
+        public bool IsRunning => _server.IsRunning;
         public IEnumerable<EncryptedPeer> Clients => _clients.List;
 
         private void OnClientAdded(object sender, EncryptedPeerEventArgs e)
@@ -95,37 +96,42 @@ namespace NetworkingLib
                 var client = new EncryptedPeer(peer);
                 _clients.Add(client);
 
-                Console.WriteLine($"(Server) Client {peer.EndPoint} just connected");
+                Console.WriteLine($"(Server) Client {peer.Address}:{peer.Port} just connected");
             };
 
             _listener.PeerDisconnectedEvent += (peer, disconnectInfo) =>
             {
                 _clients.Remove(peer.Id);
 
-                Console.WriteLine($"(Server) Client {peer.EndPoint} disconnected");
+                Console.WriteLine($"(Server) Client {peer.Address}:{peer.Port} disconnected");
             };
 
-            _listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
+            _listener.NetworkReceiveEvent += (fromPeer, dataReader, channel, deliveryMethod) =>
             {
                 var client = _clients.Get(fromPeer.Id);
 
-                if (client != null &&
-                    client.IsSecurityEnabled &&
+                Console.WriteLine($"(Server) Receive from {fromPeer.Address}:{fromPeer.Port}, Sec.: {client?.IsSecurityEnabled}");
+
+                if (client == null)
+                {
+                    Console.WriteLine($"(Server) Something wrong with client {fromPeer.Address}:{fromPeer.Port}, Id {fromPeer.Id}");
+                    return;
+                }    
+
+                if (client.IsSecurityEnabled &&
                     client.TryDecryptReceivedData(dataReader, out NetworkMessageType type, out string json))
                 {
                     MessageFromClientReceived?.Invoke(this, new NetEventArgs(client, type, json));
                 }
                 else
-                if (client != null &&
-                    !client.IsSecurityEnabled &&
+                if (!client.IsSecurityEnabled && 
                     dataReader.TryGetBytesWithLength(out byte[] publicKey) &&
                     dataReader.TryGetBytesWithLength(out byte[] signaturePublicKey))
                 {
                     var isKeyApplied = client.ApplyKeys(publicKey, signaturePublicKey);
-
-                    Console.WriteLine($"(Server) Is key from client {client.EndPoint} applied: {isKeyApplied}");
-
                     client.SendPublicKeys();
+                    
+                    Console.WriteLine($"(Server) Is key from client {client.EndPoint} applied: {isKeyApplied}");
                 }
 
                 dataReader.Recycle();

@@ -52,7 +52,7 @@ namespace NetworkingLib
 
         public DateTime StartTime { get; }
         public int Id => _peer.Id;
-        public IPEndPoint EndPoint => _peer.EndPoint;
+        public IPEndPoint EndPoint => new IPEndPoint(_peer.Address, _peer.Port);
         public ConnectionState ConnectionState => _peer.ConnectionState;
         public bool IsSecurityEnabled { get; private set; }
         public int Ping { get; private set; }
@@ -98,11 +98,13 @@ namespace NetworkingLib
         {
             var data = new NetDataWriter();
             var publicKey = _cryptography.PublicKey;
-            data.Put(publicKey.Length);
-            data.Put(publicKey);
+            //data.Put(publicKey.Length);
+            //data.Put(publicKey);
+            data.PutBytesWithLength(publicKey);
             var signaturePublicKey = _cryptography.SignaturePublicKey;
-            data.Put(signaturePublicKey.Length);
-            data.Put(signaturePublicKey);
+            //data.Put(signaturePublicKey.Length);
+            //data.Put(signaturePublicKey);
+            data.PutBytesWithLength(signaturePublicKey);
 
             _peer.Send(data, 0, DeliveryMethod.ReliableOrdered);
         }
@@ -213,7 +215,7 @@ namespace NetworkingLib
 
         public override string ToString()
         {
-            return _peer.EndPoint.ToString();
+            return _peer.Address.ToString() + ":" + _peer.Port;
         }
 
         private void Dispose(bool disposing)

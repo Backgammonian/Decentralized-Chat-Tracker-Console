@@ -125,9 +125,11 @@ namespace NetworkingLib
 
             _listener.PeerConnectedEvent += peer =>
             {
-                if (ExpectedServer == peer.EndPoint)
+                var endPoint = new IPEndPoint(peer.Address, peer.Port);
+
+                if (ExpectedServer == endPoint)
                 {
-                    Debug.WriteLine($"(Client) Expected server {peer.EndPoint} has connected");
+                    Debug.WriteLine($"(Client) Expected server {endPoint} has connected");
 
                     ExpectedServer = null;
                     Server = new EncryptedPeer(peer);
@@ -145,15 +147,17 @@ namespace NetworkingLib
 
             _listener.PeerDisconnectedEvent += (peer, disconnectInfo) =>
             {
+                var endPoint = new IPEndPoint(peer.Address, peer.Port);
+
                 if (Server != null &&
                     Server.Id == peer.Id)
                 {
-                    Debug.WriteLine($"(Client) Server {peer.EndPoint} disconnected");
+                    Debug.WriteLine($"(Client) Server {endPoint} disconnected");
 
                     Server = null;
-                    ServerRemoved?.Invoke(this, new ServerDisconnectedEventArgs(peer.EndPoint));
+                    ServerRemoved?.Invoke(this, new ServerDisconnectedEventArgs(endPoint));
 
-                    if (ExpectedServer == peer.EndPoint)
+                    if (ExpectedServer == endPoint)
                     {
                         ExpectedServer = null;
                     }
@@ -161,22 +165,22 @@ namespace NetworkingLib
                 else
                 if (_peers.Has(peer.Id))
                 {
-                    Debug.WriteLine($"(Client) Peer {peer.EndPoint} disconnected");
+                    Debug.WriteLine($"(Client) Peer {endPoint} disconnected");
 
                     _peers.Remove(peer.Id);
                 }
                 else
                 {
-                    Debug.WriteLine($"(Client) Someone ({peer.EndPoint}) disconnected");
+                    Debug.WriteLine($"(Client) Someone ({endPoint}) disconnected");
                 }
 
-                if (ExpectedServer == peer.EndPoint)
+                if (ExpectedServer == endPoint)
                 {
-                    ServerConnectionAttemptFailed?.Invoke(this, new ServerDisconnectedEventArgs(peer.EndPoint));
+                    ServerConnectionAttemptFailed?.Invoke(this, new ServerDisconnectedEventArgs(endPoint));
                 }
             };
 
-            _listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
+            _listener.NetworkReceiveEvent += (fromPeer, dataReader, channel, deliveryMethod) =>
             {
                 var peer = _peers.Get(fromPeer.Id);
 
